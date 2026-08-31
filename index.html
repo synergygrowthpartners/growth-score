@@ -233,6 +233,53 @@
     text-decoration:underline; cursor:pointer; padding:0; font-family:'Montserrat',sans-serif;
   }
 
+  /* ---------- intake mini-form ---------- */
+  .intake-row{display:flex; gap:10px; flex-wrap:wrap; margin:26px 0 6px; justify-content:center;}
+  .intake-row input{
+    flex:1; min-width:180px; max-width:260px; padding:12px 14px; border-radius:9px;
+    border:1.5px solid var(--line); background:var(--navy-raised); color:var(--ink);
+    font-family:'Montserrat',sans-serif; font-size:14.5px; text-align:left;
+  }
+  .intake-row input::placeholder{color:var(--ink-faint);}
+  .intake-row input:focus-visible{outline:2px solid var(--purple); outline-offset:1px;}
+  .intake-hint{font-size:12.5px; color:var(--ink-faint); margin:0 0 4px;}
+
+  /* ---------- focus section ---------- */
+  .focus-section{margin-top:22px; padding-top:24px; border-top:1px solid var(--line);}
+  .focus-section h3{font-size:16.5px; margin:0 0 4px;}
+  .focus-section > p.hint{color:var(--ink-faint); font-size:13.5px; margin:0 0 18px;}
+  .focus-card{
+    background:var(--navy-raised-2); border:1px solid var(--line); border-radius:12px;
+    padding:18px 20px; margin-bottom:12px;
+  }
+  .focus-head{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:8px;}
+  .focus-head .fp-name{font-size:15px; font-weight:700; color:var(--ink);}
+  .focus-head .fp-score{font-family:'IBM Plex Mono',monospace; font-size:12.5px; color:var(--ink-faint);}
+  .focus-bar-track{height:6px; border-radius:99px; background:var(--navy); overflow:hidden; margin-bottom:12px;}
+  .focus-bar-fill{height:100%; border-radius:99px; background:var(--grad); width:0%; transition:width .6s ease;}
+  .focus-card .tip{font-size:14px; color:var(--ink-soft); margin:0;}
+  .focus-card .tip strong{color:var(--ink);}
+
+  /* ---------- share / download row ---------- */
+  .util-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;}
+  .util-row button{
+    background:none; border:1.5px solid var(--line); color:var(--ink-soft);
+    font-size:13px; font-weight:600; padding:9px 14px; border-radius:8px; cursor:pointer;
+    font-family:'Montserrat',sans-serif; display:inline-flex; align-items:center; gap:7px;
+    transition:border-color .15s ease, color .15s ease;
+  }
+  .util-row button:hover{border-color:var(--purple); color:var(--ink);}
+  .util-row button.copied{border-color:var(--band-ready); color:var(--band-ready);}
+
+  @media print{
+    .bg-decor, .orbit, .brandbar, .cta-row, .email-capture, .retake, .util-row, .btn-primary, .btn-secondary{display:none !important;}
+    body{background:#fff; color:#111;}
+    .stage{max-width:100%; padding:0;}
+    .score-panel, .focus-card, .package-card{border:1px solid #ccc; box-shadow:none; background:#fff; color:#111;}
+    .tier-name, .score-number, .fp-name, h1, h2, h3{color:#111 !important;}
+    .blurb, .fp-score, .tip, .focus-section > p.hint{color:#333 !important;}
+  }
+
   @media (prefers-reduced-motion: reduce){
     .q-card{animation:none;}
     .progress-fill, .gauge-marker{transition:none;}
@@ -262,11 +309,13 @@
     .q-count{font-size:13.5px;}
   }
 </style>
+</head>
+<body>
+
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Montserrat:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
-</head>
-<body>
+
 <div class="bg-decor" aria-hidden="true">
   <div class="glow glow-a"></div>
   <div class="glow glow-b"></div>
@@ -343,6 +392,12 @@
       <span class="pillar-chip">Leadership</span>
     </div>
 
+    <p class="intake-hint">Optional — personalizes your results</p>
+    <div class="intake-row">
+      <input type="text" id="intake-business" placeholder="Business name" autocomplete="organization">
+      <input type="text" id="intake-industry" placeholder="Industry (e.g. HVAC, salon, law firm)">
+    </div>
+
     <button class="btn-primary" id="start-btn">Start My Free Assessment</button>
   </section>
 
@@ -382,6 +437,12 @@
 
       <p class="blurb" id="tier-blurb"></p>
 
+      <div class="focus-section" id="focus-section">
+        <h3>Where to focus first</h3>
+        <p class="hint">Your two lowest-scoring areas — and one free, specific thing you can do about each this week.</p>
+        <div id="focus-cards"></div>
+      </div>
+
       <div class="package-card">
         <p class="plabel">Recommended Next Step</p>
         <h3 id="package-name"></h3>
@@ -391,6 +452,11 @@
       <div class="cta-row">
         <a class="btn-primary" href="#email-capture" id="book-call-btn" style="text-decoration:none; display:inline-block;">Book Your Free Strategy Call</a>
         <button class="btn-secondary" id="scroll-email-btn">Email Me My Results</button>
+      </div>
+
+      <div class="util-row">
+        <button type="button" id="copy-link-btn">Copy Results Link</button>
+        <button type="button" id="print-btn">Download / Print Results</button>
       </div>
 
       <div class="email-capture" id="email-capture">
@@ -418,43 +484,52 @@
 (function(){
 
   var QUESTIONS = [
-    {pillar:'Strategy', text:"Do you have a written business plan or growth strategy you review regularly?", options:[
-      {t:"No formal plan", p:0},{t:"A rough idea, but nothing written down", p:4},
-      {t:"Written, but we rarely revisit it", p:7},{t:"Written and reviewed regularly", p:10}]},
-    {pillar:'Strategy', text:"How clear are you on what makes your business different from competitors?", options:[
-      {t:"Not sure how we're different", p:0},{t:"We think we're different, but haven't defined it", p:4},
-      {t:"General sense, mentioned sometimes", p:7},{t:"Clear and consistently communicated", p:10}]},
-    {pillar:'Marketing', text:"How consistently does your business show up on social media and online?", options:[
-      {t:"We're not really active online", p:0},{t:"Occasional posts, no real schedule", p:4},
-      {t:"Fairly regular, but no real plan", p:7},{t:"Consistent content plan, posted regularly", p:10}]},
-    {pillar:'Marketing', text:"Do you have a system for generating new leads, or does business come mainly from word of mouth?", options:[
-      {t:"Word of mouth only", p:0},{t:"We try a few things here and there", p:4},
-      {t:"Some lead-gen running, but inconsistent", p:7},{t:"A reliable, repeatable lead system", p:10}]},
-    {pillar:'Sales', text:"When a new lead reaches out, how quickly and consistently do you follow up?", options:[
-      {t:"We often don't follow up, or it's inconsistent", p:0},{t:"Eventually, with no set process", p:4},
-      {t:"Usually within a day or two", p:7},{t:"Fast and consistent, every time", p:10}]},
-    {pillar:'Sales', text:"Do you track how many leads turn into paying customers?", options:[
-      {t:"We don't track this at all", p:0},{t:"Rough sense only, no numbers", p:4},
-      {t:"Sometimes, informally", p:7},{t:"Yes, we track it and use it to improve", p:10}]},
-    {pillar:'Operations', text:"How much of your day-to-day still depends on you personally to keep running?", options:[
-      {t:"Everything depends on me", p:0},{t:"Most things need me involved", p:4},
-      {t:"Some things run without me", p:7},{t:"The business runs well without me", p:10}]},
-    {pillar:'Operations', text:"Do you have documented processes for your core operations?", options:[
-      {t:"Nothing documented at all", p:0},{t:"A few things, informally", p:4},
-      {t:"Some key processes documented", p:7},{t:"Documented and consistently followed", p:10}]},
-    {pillar:'Customer Experience', text:"How do you currently collect and use customer feedback or reviews?", options:[
-      {t:"We don't really collect feedback", p:0},{t:"Occasional, we don't actively ask", p:4},
-      {t:"We ask sometimes and check them", p:7},{t:"A consistent system to collect and respond", p:10}]},
-    {pillar:'Customer Experience', text:"How would you describe your follow-up with customers after the job is done?", options:[
-      {t:"We don't follow up", p:0},{t:"Sometimes, if we remember", p:4},
-      {t:"Fairly often, no formal system", p:7},{t:"A consistent post-service process", p:10}]},
-    {pillar:'Leadership', text:"Do you have people who can make decisions and keep things moving without you?", options:[
-      {t:"No one else can decide without me", p:0},{t:"One or two things can happen without me", p:4},
-      {t:"Several things can run without me", p:7},{t:"My team operates independently", p:10}]},
-    {pillar:'Leadership', text:"How clear is your team on the business's goals and their role in reaching them?", options:[
-      {t:"Not clear at all", p:0},{t:"Vague awareness, nothing specific", p:4},
-      {t:"Fairly clear on goals, mixed on roles", p:7},{t:"Very clear on both", p:10}]}
+    {pillar:'Strategy', key:'strategy', text:"Do you have specific revenue or growth targets written down for this year?", options:[
+      {t:"No targets — we just see how it goes", p:0},{t:"A rough number in my head, nothing written", p:4},
+      {t:"Written down, but I don't check progress against it", p:7},{t:"Written down, and I check it at least monthly", p:10}]},
+    {pillar:'Strategy', key:'strategy', text:"If you had 10 seconds to say why a customer should pick you over the competitor down the street, would your team say the same thing you would?", options:[
+      {t:"I couldn't say, and neither could my team", p:0},{t:"I have an idea, but my team doesn't know it", p:4},
+      {t:"Most of us could say something similar", p:7},{t:"Yes — it's clear, and everyone says the same thing", p:10}]},
+    {pillar:'Marketing', key:'marketing', text:"In the last 30 days, how many times did you post on social media or publish new content?", options:[
+      {t:"0 times", p:0},{t:"1–3 times, no real pattern", p:4},
+      {t:"4–8 times, fairly regular", p:7},{t:"9+ times, on a set schedule", p:10}]},
+    {pillar:'Marketing', key:'marketing', text:"Where did most of your new customers in the last 3 months actually come from?", options:[
+      {t:"Word of mouth / referrals only — nothing else running", p:0},{t:"We tried an ad or promo, but nothing consistent", p:4},
+      {t:"Some ongoing marketing, but leads are unpredictable", p:7},{t:"A repeatable system that reliably brings in new leads", p:10}]},
+    {pillar:'Sales', key:'sales', text:"When a new lead contacts you, how long does it typically take before someone responds?", options:[
+      {t:"A day or more, or it depends who's around", p:0},{t:"Same day, but no set process", p:4},
+      {t:"Within a few hours, most of the time", p:7},{t:"Within minutes, every time — it's a system", p:10}]},
+    {pillar:'Sales', key:'sales', text:"Out of the leads you got last month, do you know exactly how many became paying customers?", options:[
+      {t:"No idea — we don't track it", p:0},{t:"A rough guess", p:4},
+      {t:"Yes, but only roughly / informally", p:7},{t:"Yes — exact numbers, and I use them to make decisions", p:10}]},
+    {pillar:'Operations', key:'ops', text:"If you took a 2-week vacation with your phone off, what would happen to the business?", options:[
+      {t:"It would basically stop", p:0},{t:"It would struggle — too much needs me directly", p:4},
+      {t:"It would mostly keep running, with some hiccups", p:7},{t:"It would run fine without me", p:10}]},
+    {pillar:'Operations', key:'ops', text:"How many of your core processes (onboarding, fulfillment, billing, etc.) are actually written down anywhere?", options:[
+      {t:"None — it's all in my head", p:0},{t:"One or two, informally", p:4},
+      {t:"Most of the important ones", p:7},{t:"All of them, and the team actually uses them", p:10}]},
+    {pillar:'Customer Experience', key:'cx', text:"Do you have a system that actively asks every customer for a review or feedback — or does it only happen if you remember?", options:[
+      {t:"We don't ask", p:0},{t:"Occasionally, when I remember", p:4},
+      {t:"Fairly often, no formal system", p:7},{t:"Every customer, automatically", p:10}]},
+    {pillar:'Customer Experience', key:'cx', text:"After the sale or job is finished, what actually happens with that customer next?", options:[
+      {t:"Nothing — we move on", p:0},{t:"Maybe a follow-up if we think of it", p:4},
+      {t:"We follow up sometimes, informally", p:7},{t:"A consistent follow-up process, every time", p:10}]},
+    {pillar:'Leadership', key:'leadership', text:"Right now, how many decisions in a typical week require your direct sign-off?", options:[
+      {t:"Almost all of them", p:0},{t:"Most of the important ones", p:4},
+      {t:"A handful — my team handles the rest", p:7},{t:"Very few — my team decides and moves", p:10}]},
+    {pillar:'Leadership', key:'leadership', text:"If you asked three team members what the business's #1 goal is this quarter, would they give the same answer?", options:[
+      {t:"I'm not sure they could answer at all", p:0},{t:"They'd probably guess differently", p:4},
+      {t:"Most would be close", p:7},{t:"Yes, they'd all say the same thing", p:10}]}
   ];
+
+  var PILLAR_META = {
+    strategy: {label:'Strategy', tip:"Block 60–90 minutes every Monday to work <strong>on</strong> the business: check your numbers against a target, name the one thing that mattered most last week, and pick one thing to fix this week. Write your goals somewhere you'll actually see again."},
+    marketing: {label:'Marketing', tip:"Pick <strong>one</strong> platform your customers actually use and post there 3x/week for 30 days before judging results — consistency beats being everywhere at once. Ask every new customer where they heard about you so you know which channel to double down on."},
+    sales: {label:'Sales', tip:"Set a simple rule: every new lead gets a response within 1 hour during business hours, even if it's just \"got your message, calling by 3pm.\" Speed alone closes more deals than most scripts. Keep a plain list of leads-in vs. customers-won so you know your real close rate."},
+    ops: {label:'Operations', tip:"Pick your 3 most-repeated tasks and write a simple step-by-step for each this week — a checklist in a shared doc is enough. That's the start of a business that can run without you being everywhere at once."},
+    cx: {label:'Customer Experience', tip:"Set up one automatic message (text or email) that goes out to every customer 2–3 days after the job or sale, asking for feedback or a review. Automating it means it never depends on you remembering."},
+    leadership: {label:'Leadership', tip:"Pick one decision you currently make every week and hand it to someone on your team this month, with clear boundaries on what they can decide without asking. Post your top 1–3 goals for the quarter somewhere the whole team can see them."}
+  };
 
   var TIERS = [
     {max:59, name:"Critical Growth Opportunity", color:"var(--band-critical)",
@@ -473,6 +548,7 @@
 
   var current = 0;
   var answers = new Array(QUESTIONS.length).fill(null);
+  var intake = {business:'', industry:''};
 
   var screenIntro = document.getElementById('screen-intro');
   var screenQuiz = document.getElementById('screen-quiz');
@@ -487,6 +563,8 @@
   var backBtn = document.getElementById('back-btn');
 
   document.getElementById('start-btn').addEventListener('click', function(){
+    intake.business = document.getElementById('intake-business').value.trim();
+    intake.industry = document.getElementById('intake-industry').value.trim();
     screenIntro.hidden = true;
     screenQuiz.hidden = false;
     renderQuestion();
@@ -534,14 +612,50 @@
     }
   }
 
-  function showResults(){
+  function computePillarScores(answersArr){
+    var scores = {};
+    QUESTIONS.forEach(function(q, i){
+      if (!scores[q.key]) scores[q.key] = {sum:0, max:0};
+      scores[q.key].sum += (answersArr[i] || 0);
+      scores[q.key].max += 10;
+    });
+    return scores;
+  }
+
+  function weakestKeys(pillarScores, n){
+    return Object.keys(pillarScores)
+      .sort(function(a, b){ return pillarScores[a].sum - pillarScores[b].sum; })
+      .slice(0, n);
+  }
+
+  function renderFocusCards(pillarScores){
+    var container = document.getElementById('focus-cards');
+    container.innerHTML = '';
+    weakestKeys(pillarScores, 2).forEach(function(key){
+      var meta = PILLAR_META[key];
+      var s = pillarScores[key];
+      var pct = Math.round((s.sum / s.max) * 100);
+      var card = document.createElement('div');
+      card.className = 'focus-card';
+      card.innerHTML =
+        '<div class="focus-head"><span class="fp-name">' + meta.label + '</span><span class="fp-score">' + s.sum + ' / ' + s.max + '</span></div>' +
+        '<div class="focus-bar-track"><div class="focus-bar-fill" style="width:' + pct + '%"></div></div>' +
+        '<p class="tip">' + meta.tip + '</p>';
+      container.appendChild(card);
+    });
+    return weakestKeys(pillarScores, 2).map(function(k){ return PILLAR_META[k].label; });
+  }
+
+  function showResults(skipUrlUpdate){
     var score = answers.reduce(function(sum, p){ return sum + (p || 0); }, 0);
     var tier = TIERS.find(function(t){ return score <= t.max; }) || TIERS[TIERS.length - 1];
+    var pillarScores = computePillarScores(answers);
 
     screenQuiz.hidden = true;
     screenResults.hidden = false;
 
-    document.getElementById('tier-headline').textContent = "Here's where you stand";
+    var headline = intake.business ? "Here's where " + intake.business + " stands" : "Here's where you stand";
+    document.getElementById('tier-headline').textContent = headline;
 
     var scoreNumberEl = document.getElementById('score-number');
     animateCount(scoreNumberEl, score);
@@ -551,10 +665,50 @@
     tierNameEl.style.color = tier.color;
 
     document.getElementById('tier-blurb').textContent = tier.blurb;
+
+    var weakLabels = renderFocusCards(pillarScores);
     document.getElementById('package-name').textContent = tier.package + ' Plan';
-    document.getElementById('package-note').textContent = tier.note;
+    var note = tier.note;
+    if (weakLabels.length){
+      note += ' For ' + (intake.business || 'your business') + ', that starts with ' + weakLabels.join(' and ') + '.';
+    }
+    document.getElementById('package-note').textContent = note;
 
     buildGauge(score);
+    if (!skipUrlUpdate) updateShareUrl();
+  }
+
+  function encodeState(){
+    var state = {a: answers, b: intake.business, i: intake.industry};
+    return btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+  }
+
+  function decodeState(str){
+    return JSON.parse(decodeURIComponent(escape(atob(str))));
+  }
+
+  function updateShareUrl(){
+    try{
+      var url = new URL(window.location.href);
+      url.searchParams.set('r', encodeState());
+      window.history.replaceState(null, '', url.toString());
+    }catch(e){}
+  }
+
+  function restoreFromUrl(){
+    try{
+      var params = new URLSearchParams(window.location.search);
+      var r = params.get('r');
+      if (!r) return false;
+      var state = decodeState(r);
+      if (!state || !state.a || state.a.length !== QUESTIONS.length) return false;
+      answers = state.a;
+      intake.business = state.b || '';
+      intake.industry = state.i || '';
+      screenIntro.hidden = true;
+      showResults(true);
+      return true;
+    }catch(e){ return false; }
   }
 
   function animateCount(el, target){
@@ -612,18 +766,52 @@
     document.getElementById('capture-confirm').hidden = false;
   });
 
+  document.getElementById('copy-link-btn').addEventListener('click', function(){
+    var btn = this;
+    updateShareUrl();
+    var url = window.location.href;
+    function showCopied(){
+      var original = btn.textContent;
+      btn.textContent = 'Link Copied!';
+      btn.classList.add('copied');
+      setTimeout(function(){ btn.textContent = original; btn.classList.remove('copied'); }, 2000);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(showCopied, function(){
+        window.prompt('Copy this link:', url);
+      });
+    } else {
+      window.prompt('Copy this link:', url);
+    }
+  });
+
+  document.getElementById('print-btn').addEventListener('click', function(){
+    window.print();
+  });
+
   document.getElementById('retake-btn').addEventListener('click', function(){
     current = 0;
     answers = new Array(QUESTIONS.length).fill(null);
+    intake = {business:'', industry:''};
+    document.getElementById('intake-business').value = '';
+    document.getElementById('intake-industry').value = '';
     document.getElementById('capture-form').hidden = false;
     document.getElementById('capture-confirm').hidden = true;
     document.getElementById('capture-form').reset();
     screenResults.hidden = true;
     screenIntro.hidden = false;
+    try{
+      var url = new URL(window.location.href);
+      url.searchParams.delete('r');
+      window.history.replaceState(null, '', url.toString());
+    }catch(e){}
     window.scrollTo({top:0, behavior:'auto'});
   });
 
+  restoreFromUrl();
+
 })();
 </script>
+
 </body>
 </html>
