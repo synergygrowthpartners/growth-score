@@ -817,6 +817,40 @@
 
   document.getElementById('capture-form').addEventListener('submit', function(e){
     e.preventDefault();
+        // Send results to Synergy Growth Partners CRM (GoHighLevel) so the
+        // automated results + follow-up email sequence can kick off.
+        try{
+                var score = answers.reduce(function(sum, p){ return sum + (p || 0); }, 0);
+                var tier = TIERS.find(function(t){ return score <= t.max; }) || TIERS[TIERS.length - 1];
+                var pillarScores = computePillarScores(answers);
+                var weakLabels = weakestKeys(pillarScores, 2).map(function(k){ return PILLAR_META[k].label; });
+
+                var payload = {
+                          firstName: document.getElementById('capture-name').value.trim(),
+                          email: document.getElementById('capture-email').value.trim(),
+                          business: intake.business,
+                          industry: intake.industry,
+                          score: score,
+                          scoreMax: 120,
+                          tier: tier.name,
+                          strategy: (pillarScores.strategy && pillarScores.strategy.sum) || 0,
+                          marketing: (pillarScores.marketing && pillarScores.marketing.sum) || 0,
+                          sales: (pillarScores.sales && pillarScores.sales.sum) || 0,
+                          ops: (pillarScores.ops && pillarScores.ops.sum) || 0,
+                          cx: (pillarScores.cx && pillarScores.cx.sum) || 0,
+                          leadership: (pillarScores.leadership && pillarScores.leadership.sum) || 0,
+                          weakestAreas: weakLabels.join(', ')
+                };
+
+                fetch('https://services.leadconnectorhq.com/hooks/GVxUMETiSR8AnDKcinEG/webhook-trigger/e3697063-47fa-4fec-a3d8-2ee665087f9d', {
+                          method: 'POST',
+                          headers: {'Content-Type': 'application/json'},
+                          body: JSON.stringify(payload)
+                }).catch(function(err){ console.warn('Growth Assessment webhook failed:', err); });
+        }catch(err){
+                console.warn('Growth Assessment webhook error:', err);
+        }
+    
     document.getElementById('capture-form').hidden = true;
     document.getElementById('capture-confirm').hidden = false;
   });
